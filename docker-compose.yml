@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -36,6 +34,9 @@ services:
       - APP_URL=http://localhost
     networks:
       - app-network
+    depends_on:
+      - db
+      - mailpit
 
   db:
     image: mysql:8.0
@@ -51,31 +52,33 @@ services:
     networks:
       - app-network
 
-  mailpit:
-    image: mailpit/mailpit
-    container_name: mailpit
+  nginx:
+    image: nginx:alpine
+    container_name: homework-platform-nginx
     restart: unless-stopped
     ports:
-      - "8025:8025"
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/:/etc/nginx/conf.d/
+    networks:
+      - app-network
+    depends_on:
+      - app
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: homework-platform-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
     networks:
       - app-network
 
   memcached:
     image: memcached:alpine
     container_name: homework-platform-memcached
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  nginx:
-    image: nginx:alpine
-    container_name: homework-platform-nginx
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    volumes:
-      - .:/var/www
-      - ./docker/nginx:/etc/nginx/conf.d/
     networks:
       - app-network
 
@@ -85,3 +88,4 @@ networks:
 
 volumes:
   dbdata:
+    driver: local
